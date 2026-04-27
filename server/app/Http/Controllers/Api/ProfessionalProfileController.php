@@ -115,6 +115,66 @@ class ProfessionalProfileController extends Controller
         return response()->json($this->professionalProfileService->getHistory($professionalProfile));
     }
 
+    public function stats()
+    {
+        return response()->json($this->professionalProfileService->getStats());
+    }
+
+    public function bulkApprove(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:professional_profiles,id',
+        ]);
+
+        $result = $this->professionalProfileService->bulkApprove($validated['ids'], $request->user());
+
+        return response()->json([
+            'message' => sprintf(
+                'Da duyet %d/%d ho so.',
+                count($result['approved']),
+                count($validated['ids'])
+            ),
+            'result' => $result,
+        ]);
+    }
+
+    public function bulkReject(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:professional_profiles,id',
+            'reason' => 'required|string|min:10|max:1000',
+        ]);
+
+        $result = $this->professionalProfileService->bulkReject(
+            $validated['ids'],
+            $validated['reason'],
+            $request->user()
+        );
+
+        return response()->json([
+            'message' => sprintf(
+                'Da tu choi %d/%d ho so.',
+                count($result['rejected']),
+                count($validated['ids'])
+            ),
+            'result' => $result,
+        ]);
+    }
+
+    public function downloadCertificate(int $certificate, Request $request)
+    {
+        $user = $request->user();
+        $isAdmin = $user?->hasRole('admin') ?? false;
+
+        return $this->professionalProfileService->downloadCertificate(
+            $certificate,
+            $user,
+            $isAdmin
+        );
+    }
+
     private function validatedPayload(Request $request): array
     {
         $validated = $request->validate([

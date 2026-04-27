@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProfessionalProfileCertificate extends Model
 {
+    public const DOWNLOAD_PATH_PREFIX = '/professional-profiles/certificates';
+
     protected $fillable = [
         'professional_profile_id',
         'professional_profile_specialty_id',
@@ -34,6 +36,7 @@ class ProfessionalProfileCertificate extends Model
     protected $appends = [
         'is_expired',
         'is_expiring_soon',
+        'file_url',
     ];
 
     public function profile()
@@ -61,5 +64,14 @@ class ProfessionalProfileCertificate extends Model
 
         return $this->expiry_date->greaterThanOrEqualTo($today)
             && $this->expiry_date->lessThanOrEqualTo($today->copy()->addDays(30));
+    }
+
+    public function getFileUrlAttribute(): ?string
+    {
+        if (! $this->file_path || ! $this->id) {
+            return null;
+        }
+
+        return self::DOWNLOAD_PATH_PREFIX.'/'.$this->id.'/download';
     }
 }
