@@ -287,6 +287,97 @@ class ProfessionalProfileService
             ->get();
     }
 
+    public function getStats(): array
+    {
+        $statusCounts = ProfessionalProfile::query()
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+
+        $expiringProfileIds = ProfessionalProfileCertificate::query()
+            ->whereNotNull('expiry_date')
+            ->whereDate('expiry_date', '>=', now()->toDateString())
+            ->whereDate('expiry_date', '<=', now()->addDays(30)->toDateString())
+            ->pluck('professional_profile_id')
+            ->unique();
+
+        $expiredProfileIds = ProfessionalProfileCertificate::query()
+            ->whereNotNull('expiry_date')
+            ->whereDate('expiry_date', '<', now()->toDateString())
+            ->pluck('professional_profile_id')
+            ->unique();
+
+        return [
+            'total' => array_sum($statusCounts),
+            'by_status' => [
+                'draft' => $statusCounts[ProfessionalProfile::STATUS_DRAFT] ?? 0,
+                'pending' => $statusCounts[ProfessionalProfile::STATUS_PENDING] ?? 0,
+                'approved' => $statusCounts[ProfessionalProfile::STATUS_APPROVED] ?? 0,
+                'expired' => $statusCounts[ProfessionalProfile::STATUS_EXPIRED] ?? 0,
+                'rejected' => $statusCounts[ProfessionalProfile::STATUS_REJECTED] ?? 0,
+                'inactive' => $statusCounts[ProfessionalProfile::STATUS_INACTIVE] ?? 0,
+            ],
+            'expiring_soon' => $expiringProfileIds->count(),
+            'has_expired_certificate' => $expiredProfileIds->count(),
+        ];
+    }
+
+    public function bulkApprove(array $ids, User $actor): array
+    {
+        $results = ['approved' => [], 'failed' => []];
+
+        foreach ($ids as $id) {
+            try {
+                $profile = ProfessionalProfile::findOrFail($id);
+                $this->approve($profile, $actor);
+                $results['approved'][] = $id;
+            } catch (\Throwable $e) {
+                $results['failed'][] = ['id' => $id, 'message' => $e->getMessage()];
+            }
+        }
+
+        return $results;
+    }
+
+    public function bulkReject(array $ids, string $reason, User $actor): array
+    {
+        $results = ['rejected' => [], 'failed' => []];
+
+        foreach ($ids as $id) {
+            try {
+                $profile = ProfessionalProfile::findOrFail($id);
+                $this->reject($profile, $reason, $actor);
+                $results['rejected'][] = $id;
+            } catch (\Throwable $e) {
+                $results['failed'][] = ['id' => $id, 'message' => $e->getMessage()];
+            }
+        }
+
+        return $results;
+    }
+
+    public function downloadCertificate(int $certificateId, User $actor, bool $isAdmin)
+    {
+        $certificate = ProfessionalProfileCertificate::with('profile.staff')->findOrFail($certificateId);
+
+        if (! $isAdmin) {
+            $staff = Staff::where('user_id', $actor->id)->first();
+            if (! $staff || $certificate->profile?->staff_id !== $staff->id) {
+                abort(403, 'Ban khong co quyen tai chung chi nay.');
+            }
+        }
+
+        if (! $certificate->file_path || ! Storage::disk('local')->exists($certificate->file_path)) {
+            abort(404, 'Khong tim thay tep dinh kem.');
+        }
+
+        return Storage::disk('local')->download(
+            $certificate->file_path,
+            $certificate->file_name ?: ('certificate-'.$certificate->id)
+        );
+    }
+
     public function expireProfiles(): int
     {
         $count = 0;

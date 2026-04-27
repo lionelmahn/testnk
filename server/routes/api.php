@@ -41,6 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/my-professional-profile', [MyProfessionalProfileController::class, 'show']);
     Route::put('/my-professional-profile/{professionalProfile}', [MyProfessionalProfileController::class, 'update'])->whereNumber('professionalProfile');
     Route::post('/my-professional-profile/{professionalProfile}/submit', [MyProfessionalProfileController::class, 'submit'])->whereNumber('professionalProfile');
+    Route::get('/professional-profiles/certificates/{certificate}/download', [ProfessionalProfileController::class, 'downloadCertificate'])->whereNumber('certificate');
 
     Route::middleware('role:admin')->group(function () {
         Route::get('/users', [UserController::class, 'index']);
@@ -59,6 +60,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/staff/{staff}/status', [\App\Http\Controllers\Api\StaffController::class, 'changeStatus'])->whereNumber('staff');
         Route::get('/staff/{staff}/history', [\App\Http\Controllers\Api\StaffController::class, 'history'])->whereNumber('staff');
         Route::get('/professional-profiles/options', [ProfessionalProfileController::class, 'options']);
+        Route::get('/professional-profiles/stats', [ProfessionalProfileController::class, 'stats']);
+        Route::post('/professional-profiles/bulk-approve', [ProfessionalProfileController::class, 'bulkApprove']);
+        Route::post('/professional-profiles/bulk-reject', [ProfessionalProfileController::class, 'bulkReject']);
         Route::get('/professional-profiles', [ProfessionalProfileController::class, 'index']);
         Route::post('/professional-profiles', [ProfessionalProfileController::class, 'store']);
         Route::get('/professional-profiles/{professionalProfile}', [ProfessionalProfileController::class, 'show'])->whereNumber('professionalProfile');
