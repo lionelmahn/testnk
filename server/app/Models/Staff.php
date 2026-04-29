@@ -15,6 +15,7 @@ class Staff extends Model
         'join_date',
         'status',
         'role_slug',
+        'branch_id',
         'certificate_file',
         'is_certificate_valid',
         'user_id'
@@ -33,5 +34,10 @@ class Staff extends Model
     public function professionalProfiles()
     {
         return $this->hasMany(ProfessionalProfile::class);
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
 }

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Download, Plus, FileWarning, AlarmClock, ClipboardList } from 'lucide-react';
 import ProfessionalProfileTable from '@/features/professional-profiles/components/ProfessionalProfileTable';
 import ProfessionalProfileForm from '@/features/professional-profiles/components/ProfessionalProfileForm';
+import ProfessionalProfileWizardModal from '@/features/professional-profiles/components/ProfessionalProfileWizardModal';
 import ProfessionalProfileDetailPanel from '@/features/professional-profiles/components/ProfessionalProfileDetailPanel';
 import professionalProfileApi from '@/api/professionalProfileApi';
 import { useToast } from '@/hooks/use-toast';
@@ -30,6 +31,8 @@ export default function ProfessionalProfileManagement() {
   const [profiles, setProfiles] = useState([]);
   const [staffOptions, setStaffOptions] = useState([]);
   const [services, setServices] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [degrees, setDegrees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
@@ -40,6 +43,8 @@ export default function ProfessionalProfileManagement() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [openForm, setOpenForm] = useState(false);
+  const [openWizard, setOpenWizard] = useState(false);
+  const [submittingWizard, setSubmittingWizard] = useState(false);
   const [form, setForm] = useState(createEmptyProfileForm());
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [selectedHistory, setSelectedHistory] = useState([]);
@@ -50,6 +55,8 @@ export default function ProfessionalProfileManagement() {
     const response = await professionalProfileApi.getOptions();
     setStaffOptions(response.data.staff || []);
     setServices(response.data.services || []);
+    setBranches(response.data.branches || []);
+    setDegrees(response.data.degrees || []);
   };
 
   const loadProfiles = async (page = 1, overrides = {}) => {
@@ -108,8 +115,7 @@ export default function ProfessionalProfileManagement() {
   }, [profiles]);
 
   const openCreateForm = () => {
-    setForm(createEmptyProfileForm());
-    setOpenForm(true);
+    setOpenWizard(true);
   };
 
   const openEditForm = async (profile) => {
@@ -171,6 +177,25 @@ export default function ProfessionalProfileManagement() {
         title: 'Lỗi',
         description: error.response?.data?.message || 'Lưu hồ sơ thất bại.',
       });
+    }
+  };
+
+  const handleWizardSubmit = async (wizardForm) => {
+    setSubmittingWizard(true);
+    try {
+      const formData = buildProfileFormData(wizardForm);
+      await professionalProfileApi.create(formData);
+      toast({ title: 'Thành công', description: 'Đã tạo hồ sơ chuyên môn mới.' });
+      setOpenWizard(false);
+      loadProfiles(1);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi',
+        description: error.response?.data?.message || 'Tạo hồ sơ thất bại.',
+      });
+    } finally {
+      setSubmittingWizard(false);
     }
   };
 
@@ -417,6 +442,17 @@ export default function ProfessionalProfileManagement() {
           </ul>
         </section>
       </div>
+
+      <ProfessionalProfileWizardModal
+        open={openWizard}
+        staffOptions={staffOptions}
+        branches={branches}
+        services={services}
+        degrees={degrees}
+        submitting={submittingWizard}
+        onClose={() => setOpenWizard(false)}
+        onSubmit={handleWizardSubmit}
+      />
 
       <ProfessionalProfileForm
         open={openForm}

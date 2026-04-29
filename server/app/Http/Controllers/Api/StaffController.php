@@ -19,7 +19,7 @@ class StaffController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Staff::with('user');
+        $query = Staff::with(['user','branch']);
 
         if ($request->has('search') && !empty($request->search)) {
             $search = $request->search;
@@ -55,6 +55,7 @@ class StaffController extends Controller
             'email' => 'required|email|unique:staff,email|unique:users,email',
             'phone' => 'nullable|string|digits:10|unique:staff,phone',
             'role_slug' => 'required|string|exists:roles,slug',
+            'branch_id' => 'nullable|integer|exists:branches,id',
             'join_date' => 'nullable|date',
             'status' => 'nullable|in:working,suspended,resigned',
         ]);
@@ -101,7 +102,7 @@ class StaffController extends Controller
 
             return response()->json([
                 'message' => 'Thêm nhân sự thành công',
-                'staff' => $staff->load('user')
+                'staff' => $staff->load(['user','branch'])
             ], 201);
 
         } catch (\Exception $e) {
@@ -115,7 +116,7 @@ class StaffController extends Controller
      */
     public function show(string $id)
     {
-        $staff = Staff::with('user')->findOrFail($id);
+        $staff = Staff::with(['user','branch'])->findOrFail($id);
         return response()->json($staff);
     }
 
@@ -131,6 +132,7 @@ class StaffController extends Controller
             'email' => 'required|email|unique:staff,email,' . $id . '|unique:users,email,' . $staff->user_id,
             'phone' => 'nullable|string|digits:10|unique:staff,phone,' . $id,
             'role_slug' => 'required|string|exists:roles,slug',
+            'branch_id' => 'nullable|integer|exists:branches,id',
             'join_date' => 'nullable|date',
         ]);
 
@@ -170,7 +172,7 @@ class StaffController extends Controller
 
             return response()->json([
                 'message' => 'Cập nhật nhân sự thành công',
-                'staff' => $staff->load('user')
+                'staff' => $staff->load(['user','branch'])
             ]);
 
         } catch (\Exception $e) {
@@ -217,7 +219,7 @@ class StaffController extends Controller
 
             return response()->json([
                 'message' => 'Cập nhật trạng thái thành công',
-                'staff' => $staff->fresh()->load('user')
+                'staff' => $staff->fresh()->load(['user','branch'])
             ]);
 
         } catch (\Exception $e) {

@@ -91,8 +91,16 @@ export default function ProfessionalProfileDetailPanel({
     (profile.certificates || []).find((c) => c.is_primary) ||
     (profile.certificates || [])[0] ||
     null;
-  const services = specialty?.service_scope || [];
-  const branchText = specialty?.branch_or_room || '—';
+  const services =
+    (Array.isArray(profile.service_scope) && profile.service_scope.length > 0
+      ? profile.service_scope
+      : specialty?.service_scope) || [];
+  const branchText = profile.branch?.name || specialty?.branch_or_room || '—';
+  const profileDegree = profile.degree || specialty?.degree;
+  const profileYears =
+    profile.years_experience !== null && profile.years_experience !== undefined
+      ? profile.years_experience
+      : specialty?.years_experience;
 
   const canApprove = ['pending', 'expired'].includes(profile.status);
   const canReject = profile.status === 'pending';
@@ -185,9 +193,9 @@ export default function ProfessionalProfileDetailPanel({
                 <Field label="Chuyên khoa chính">
                   {specialty?.specialty_name || (isDoctor ? '—' : 'Nghiệp vụ chung')}
                 </Field>
-                <Field label="Học vị">{specialty?.degree}</Field>
+                <Field label="Học vị">{profileDegree}</Field>
                 <Field label="Kinh nghiệm">
-                  {specialty?.years_experience ? `${specialty.years_experience} năm` : '—'}
+                  {profileYears ? `${profileYears} năm` : '—'}
                 </Field>
               </div>
               <div className="space-y-3">
